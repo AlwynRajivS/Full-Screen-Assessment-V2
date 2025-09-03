@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 16px; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
+    .card { border:1px solid #ddd; border-radius:12px; padding:12px; }
+    input { width:100%; padding:8px; margin:4px 0; }
+    button { padding:10px 14px; }
+    img { max-width: 160px; margin-top:8px; }
+  </style>
+</head>
+<body onload="checkAccess()">
+  <h2>Admin Panel</h2>
+  <p><a href="results.html">View Results</a> | <a href="index.html">Logout</a></p>
+
+  <div class="card">
+    <h3>Add New Question</h3>
+    <input id="question" placeholder="Question (LaTeX allowed like $E=mc^2$)" />
+    <div class="grid">
+      <input id="optA" placeholder="Option A" />
+      <input id="optB" placeholder="Option B" />
+      <input id="optC" placeholder="Option C" />
+      <input id="optD" placeholder="Option D" />
+    </div>
+    <input id="correct" placeholder="CorrectText (must match one option exactly)" />
+    <input id="dept" placeholder="Department (e.g., CSE, ECE)" />
+    <input id="img" placeholder="Image URL (optional)" />
+    <button onclick="addQuestion()">Add Question</button>
+  </div>
+
+  <h3>All Questions</h3>
+  <div id="qList" class="grid"></div>
+
+<script>
+const scriptURL = "https://script.google.com/macros/s/AKfycbybU7EpOWseHFycGi0mIHjTIA2H83m_UgpWV9VH6hYtUDaKQnYw5oR14nPrcNifydl_/exec";
+
+function checkAccess() {
+  if (localStorage.getItem('role') !== 'Admin') {
+    alert('Access Denied!');
+    window.location.href = 'index.html';
+  } else {
+    fetchQuestions();
+  }
+}
+
+async function addQuestion() {
+  const data = {
+    action: 'addQuestion',
+    question: document.getElementById('question').value.trim(),
+    optA: document.getElementById('optA').value.trim(),
+    optB: document.getElementById('optB').value.trim(),
+    optC: document.getElementById('optC').value.trim(),
+    optD: document.getElementById('optD').value.trim(),
+    correct: document.getElementById('correct').value.trim(),
+    dept: document.getElementById('dept').value.trim(),
+    img: document.getElementById('img').value.trim()
+  };
+
+  if (!data.question || !data.optA || !data.optB || !data.optC || !data.optD || !data.correct || !data.dept) {
+    alert('Fill all fields except Image URL (optional).');
+    return;
+  }
+
+  await fetch(scriptURL, { method:'POST', body: JSON.stringify(data) });
+  alert('Question Added');
+  document.querySelectorAll('input').forEach(i => i.value = '');
+  fetchQuestions();
+}
+
+async function fetchQuestions() {
+  const res = await fetch(scriptURL, { method:'POST', body: JSON.stringify({ action:'getAllQuestions' }) });
+  const data = await res.json();
+
+  const wrap = document.getElementById('qList');
+  wrap.innerHTML = '';
+  data.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <b>Q${i+1} (${q.dept})</b><br>${q.q}<br>
+      A) ${q.options[0]}<br>
+      B) ${q.options[1]}<br>
+      C) ${q.options[2]}<br>
+      D) ${q.options[3]}<br>
+      <b>Correct:</b> ${q.answer}<br>
+      ${q.img ? `<img src="${q.img}" alt="img">` : ''}
+    `;
+    wrap.appendChild(div);
+  });
+  MathJax.typesetPromise();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <title>Assessment Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .question { margin-bottom: 20px; }
+    .options label { display: block; }
+    #timer { font-weight: bold; color: red; }
+    #warning { color: orange; font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Assessment Test</h1>
+  <div id="timer">Time Left: </div>
+  <div id="warning"></div>
+
+  <button id="startBtn">Start Test</button>
+
+  <form id="quizForm"></form>
+  <button id="submitBtn" style="display:none;" type="button" onclick="submitQuiz()">Submit</button>
+
+  <script>
+    const scriptURL = "YOUR_WEBAPP_URL_HERE"; // Replace with your Apps Script URL
+    let timeLeft = 300; // 5 minutes
+    let timerId;
+    let violationCount = 0;
+    const maxViolations = 5;
+
+    // Start Test
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        console.warn("Fullscreen not available:", err);
+      }
+
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("submitBtn").style.display = "inline-block";
+
+      loadQuestions();
+      startTimer();
+      enableRestrictions();
+    });
+
+    // Load Questions using JSONP
+    function loadQuestions() {
+      let script = document.createElement("script");
+      script.src = scriptURL + "?callback=showQuestions";
+      document.body.appendChild(script);
+    }
+
+    function showQuestions(questions) {
+      const quizForm = document.getElementById("quizForm");
+      quizForm.innerHTML = "";
+
+      questions.sort(() => 0.5 - Math.random()); // shuffle questions
+
+      questions.forEach((q, index) => {
+        let div = document.createElement("div");
+        div.className = "question";
+        div.innerHTML = `<p>${index + 1}. ${q.q}</p>`;
+
+        if (q.img) {
+          div.innerHTML += `<img src="${q.img}" width="200"><br>`;
+        }
+
+        q.options.sort(() => 0.5 - Math.random()); // shuffle options
+        q.options.forEach(opt => {
+          div.innerHTML += `<label><input type="radio" name="q${index}" value="${opt}"> ${opt}</label>`;
+        });
+
+        quizForm.appendChild(div);
+      });
+    }
+
+    // Timer
+    function startTimer() {
+      timerId = setInterval(() => {
+        document.getElementById("timer").textContent = "Time Left: " + timeLeft + "s";
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          alert("Time is up! Submitting...");
+          submitQuiz();
+        }
+        timeLeft--;
+      }, 1000);
+    }
+
+    // Restrictions
+    function enableRestrictions() {
+      // Copy/Paste restriction
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && (e.key === "c" || e.key === "v")) {
+          e.preventDefault();
+          addViolation("Copy/Paste not allowed!");
+        }
+      });
+
+      // Detect tab switch / focus loss
+      window.onblur = () => {
+        addViolation("Tab switch detected!");
+      };
+    }
+
+    function addViolation(msg) {
+      violationCount++;
+      document.getElementById("warning").textContent =
+        msg + " | Violations: " + violationCount + "/" + maxViolations;
+
+      if (violationCount >= maxViolations) {
+        alert("Too many violations! Auto-submitting...");
+        submitQuiz();
+      }
+    }
+
+    // Submit
+    function submitQuiz() {
+      clearInterval(timerId);
+      alert("Quiz submitted!");
+      // TODO: send answers + violationCount back to Apps Script
+    }
+  </script>
+</body>
+</html>
