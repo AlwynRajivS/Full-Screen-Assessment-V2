@@ -1,138 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Secure Test</title>
+  <meta charset="utf-8" />
+  <title>Secure Assessment</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: Arial, sans-serif; }
-    .question { margin-bottom: 20px; }
-    .warning { color: red; font-weight: bold; }
+    :root{
+      --brand:#3f51b5;
+      --accent:#ff7043;
+      --card:#ffffff;
+      --bg:#f4f6fb;
+      --danger:#d32f2f;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;color:#222}
+    header{background:linear-gradient(90deg,var(--brand),#283593);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    header h1{margin:0;font-size:18px;font-weight:600}
+    #timer{background:var(--accent);color:#fff;padding:6px 12px;border-radius:8px;font-weight:700}
+    main{max-width:980px;margin:18px auto;padding:0 16px}
+    #warnings{margin:12px 0;color:var(--danger);font-weight:700;min-height:22px}
+    #questions{display:block;gap:14px}
+    .question{
+      background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(20,30,60,0.06);margin-bottom:12px;
+    }
+    .q-title{font-weight:700;margin:0 0 8px 0}
+    .options label{
+      display:block;padding:8px;border-radius:8px;margin:6px 0;cursor:pointer;border:1px solid #eee;transition:all .12s;
+      user-select:none; /* avoid text selection on desktop */
+    }
+    .options input{margin-right:10px}
+    .options label:hover{background:#fbfbff;transform:translateY(-1px)}
+    footer{display:flex;justify-content:center;padding:20px}
+    .btn{
+      background:var(--brand);color:#fff;padding:12px 18px;border-radius:10px;border:none;font-weight:700;cursor:pointer;
+      box-shadow:0 6px 16px rgba(63,81,181,0.16);
+    }
+    .btn:active{transform:translateY(1px)}
+    .small{font-size:13px;color:#666}
+    img.qimg{max-width:320px;display:block;margin:8px 0;border-radius:8px}
+    @media (max-width:600px){
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+    }
   </style>
 </head>
 <body>
-  <h2>Secure Assessment</h2>
-  <div id="timer"></div>
-  <div id="warnings"></div>
-  <div id="questions"></div>
-  <button onclick="submitTest()">Submit</button>
+  <header>
+    <h1>Secure Online Assessment</h1>
+    <div id="timer">⏳ --:--</div>
+  </header>
+
+  <main>
+    <div id="warnings" aria-live="polite"></div>
+
+    <div id="questions">Loading questions…</div>
+
+    <footer>
+      <button id="submitBtn" class="btn">Submit Test</button>
+    </footer>
+    <p class="small" style="text-align:center">Tip: click/tap once on the page to enter fullscreen (required by some browsers).</p>
+  </main>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1YwkR-uro5FG5mzU42HJ5kwN3cc6vgt7uDwL3Nht13918CPECN5TnVoDfNQXQQ8EE/exec"; // Replace
-const DEPT = "CSE"; // Must match "Dept" column in Sheet
+/* ---------- CONFIG ---------- */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjxp98hKFLHyMyOfQgaRaD8enN0_3x9-a-0zTAEgrVpaQcLjscxD72voGzGqBaSoAm/exec";
+const DEPT = "CSE";
+const MAX_VIOLATIONS = 5;
+const EXAM_SECONDS = 300; // 5 minutes
 
+/* ---------- STATE ---------- */
 let questions = [];
 let violationCount = 0;
-let maxViolations = 5;
-let timeLeft = 300; // 5 minutes
+let timeLeft = EXAM_SECONDS;
+let timerInterval = null;
+let submitted = false;
 
-async function loadQuestions() {
-  try {
-    const res = await fetch(`${SCRIPT_URL}?dept=${DEPT}`);
-    const data = await res.json();
-    console.log("Fetched questions:", data); // 🔍 Debug
-    questions = data.questions;
-    if (!questions || questions.length === 0) {
-      document.getElementById("questions").innerHTML = "<p>No questions found.</p>";
-    } else {
-      showQuestions();
-      startTimer();
-    }
-  } catch (err) {
-    console.error("Error loading questions:", err);
-    document.getElementById("questions").innerHTML = "<p>Failed to load questions.</p>";
+/* ---------- HELPERS ---------- */
+function updateWarningSingle(msg){
+  // single-line updating warning
+  violationCount = Math.min(MAX_VIOLATIONS, violationCount);
+  const remaining = Math.max(0, MAX_VIOLATIONS - violationCount);
+  const el = document.getElementById('warnings');
+  if(msg){
+    el.textContent = `⚠ ${msg} — Violations: ${violationCount}/${MAX_VIOLATIONS} — Remaining: ${remaining}`;
+  } else {
+    el.textContent = '';
   }
 }
 
-function showQuestions() {
-  const container = document.getElementById("questions");
-  container.innerHTML = "";
-  questions.forEach((q, i) => {
-    const div = document.createElement("div");
-    div.className = "question";
-    div.innerHTML = `
-      <p><b>Q${i+1}:</b> ${q.question}</p>
-      ${q.image ? `<img src="${q.image}" width="200"><br>` : ""}
-      ${q.options.map(opt => `
-        <label>
-          <input type="radio" name="q${i}" value="${opt.text}"> ${opt.text}
-        </label><br>
-      `).join("")}
-    `;
-    container.appendChild(div);
-  });
+function increaseViolation(reason){
+  // exclude if already submitted
+  if(submitted) return;
+  violationCount++;
+  updateWarningSingle(reason);
+  if(violationCount >= MAX_VIOLATIONS){
+    updateWarningSingle('Maximum violations reached. Auto-submitting.');
+    // small delay to let warning show
+    setTimeout(()=> submitTest('violations'), 700);
+  }
 }
 
-async function submitTest() {
-  // Collect answers
-  const answers = {};
+/* ---------- FETCH QUESTIONS (GET) ---------- */
+async function loadQuestions(){
+  try{
+    const res = await fetch(`${SCRIPT_URL}?dept=${encodeURIComponent(DEPT)}`, { method: 'GET' });
+    if(!res.ok) throw new Error('Network response not OK: ' + res.status);
+    const data = await res.json();
+    questions = data.questions || [];
+    if(!questions.length){
+      document.getElementById('questions').innerHTML = '<p>No questions found for your department.</p>';
+      return;
+    }
+    renderQuestions();
+    startTimer();
+  } catch(err){
+    console.error('Error loading questions:', err);
+    document.getElementById('questions').innerHTML = `<p style="color:${'#d32f2f'}">Failed to load questions. Check console.</p>`;
+  }
+}
+
+/* ---------- RENDER ---------- */
+function renderQuestions(){
+  const wrap = document.getElementById('questions');
+  wrap.innerHTML = '';
+  questions.forEach((q, idx) => {
+    const card = document.createElement('div');
+    card.className = 'question';
+    // question text and optional image
+    card.innerHTML = `<p class="q-title">Q${idx+1}: ${escapeHtml(q.question)}</p>
+      ${q.image ? `<img class="qimg" src="${escapeHtml(q.image)}" alt="Question image">` : ''}
+      <div class="options" data-q="${idx}">` +
+      q.options.map(opt => {
+        // each opt expected as {text, correct?} or simple text (handle both)
+        const text = (typeof opt === 'string') ? opt : (opt.text || "");
+        return `<label><input type="radio" name="q${idx}" value="${escapeHtml(text)}"> ${escapeHtml(text)}</label>`;
+      }).join('') +
+      `</div>`;
+    wrap.appendChild(card);
+  });
+  // make sure warnings cleared
+  updateWarningSingle('');
+}
+
+/* simple HTML escape */
+function escapeHtml(s){
+  return (s+"").replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
+}
+
+/* ---------- TIMER ---------- */
+function startTimer(){
+  const timerEl = document.getElementById('timer');
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      timerEl.textContent = '⏳ 00:00';
+      increaseViolation('Time ended'); // will trigger submit too
+      // but prefer auto-submit directly:
+      if(!submitted) submitTest('timeout');
+      return;
+    }
+    const m = Math.floor(timeLeft/60);
+    const s = timeLeft % 60;
+    timerEl.textContent = `⏳ ${m}:${s < 10 ? '0'+s : s}`;
+    timeLeft--;
+  }, 1000);
+}
+
+/* ---------- SCORE CALCULATION ---------- */
+function calculateScore(){
+  // questions may have options with 'correct' flag; otherwise correctText may exist
+  let score = 0;
   questions.forEach((q, i) => {
-    const selected = document.querySelector(`input[name="q${i}"]:checked`);
-    answers[`Q${i+1}`] = selected ? selected.value : "Not answered";
+    const chosen = document.querySelector(`input[name="q${i}"]:checked`);
+    if(!chosen) return;
+    const chosenText = chosen.value + "";
+    // try to find correct flag in q.options
+    if(Array.isArray(q.options) && q.options.some(opt => (opt.correct === true) && ( (opt.text||opt) + "" === chosenText ) )){
+      score++;
+    } else if(q.correctText && (q.correctText + "") === chosenText){
+      score++;
+    }
+  });
+  return score;
+}
+
+/* ---------- SUBMIT (POST) ---------- */
+async function submitTest(endReason){
+  if(submitted){
+    console.warn('Already submitted; ignoring duplicate submit');
+    return;
+  }
+  submitted = true;
+  // stop timer
+  if(timerInterval) clearInterval(timerInterval);
+  updateWarningSingle('Submitting test...');
+
+  // collect answers
+  const answers = {};
+  questions.forEach((q,i) => {
+    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+    answers[`Q${i+1}`] = sel ? sel.value : "Not answered";
   });
 
-  // Prepare payload
+  // compute score
+  const score = calculateScore();
   const payload = {
+    action: "submitResult",
+    name: localStorage.getItem('user') || '',
     dept: DEPT,
     answers: answers,
+    score: score,
+    total: questions.length,
     violations: violationCount,
-    timeLeft: timeLeft
+    timeLeft: timeLeft,
+    endReason: endReason || 'manual'
   };
 
   try {
     const res = await fetch(SCRIPT_URL, {
-      method: "POST",
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
       body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json" }
+      credentials: 'omit' // Apps Script handles auth via web app settings
     });
-    const result = await res.json();
-    alert("Test submitted successfully!");
-    console.log("Server response:", result);
-  } catch (err) {
-    console.error("Error submitting test:", err);
-    alert("Failed to submit test. Try again.");
-  }
-}
 
+    let text = await res.text(); // read raw
+    let json;
+    try { json = JSON.parse(text); } catch(e) { json = null; }
 
-function startTimer() {
-  const timer = document.getElementById("timer");
-  const interval = setInterval(() => {
-    if (timeLeft <= 0) {
-      clearInterval(interval);
-      alert("Time is up! Auto-submit.");
-      submitTest();
-    } else {
-      timer.textContent = "Time Left: " + Math.floor(timeLeft/60) + ":" + (timeLeft%60).toString().padStart(2, "0");
-      timeLeft--;
+    if(!res.ok){
+      throw new Error(`Server returned ${res.status} ${res.statusText} — ${text}`);
     }
-  }, 1000);
-}
 
-// Restrict copy/paste and tab switch
-function warnViolation(msg) {
-  violationCount++;
-  const warnBox = document.getElementById("warnings");
-  warnBox.innerHTML += `<p class="warning">${msg}. Remaining: ${maxViolations - violationCount}</p>`;
-  if (violationCount >= maxViolations) {
-    alert("Too many violations! Auto-submit.");
-    submitTest();
+    // success path
+    updateWarningSingle('Submitted successfully');
+    alert(`Submitted. Score: ${score}/${questions.length}`);
+    console.log('Server response:', json || text);
+    // redirect or show message
+    // window.location.href = 'index.html';
+  } catch(err){
+    console.error('Error submitting test:', err);
+    // show detailed error to admin/user
+    updateWarningSingle('Submit failed: ' + (err.message || 'Network error'));
+    // allow retry by resetting submitted flag
+    submitted = false;
+    alert('Failed to submit test. Check console for details and try again.');
   }
 }
 
-document.addEventListener("copy", e => { e.preventDefault(); warnViolation("Copy not allowed"); });
-document.addEventListener("paste", e => { e.preventDefault(); warnViolation("Paste not allowed"); });
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) warnViolation("Tab switch not allowed");
+/* ---------- RESTRICTIONS (non-blocking to inputs) ---------- */
+
+/* helper to check if event target is inside interactive control */
+function isInteractiveTarget(el){
+  return !!(el && (el.closest('input, button, select, textarea, label, a') ));
+}
+
+/* copy/paste */
+document.addEventListener('copy', e => {
+  if(isInteractiveTarget(e.target)) { /* allow copy from inputs if needed */ return; }
+  e.preventDefault(); increaseViolation('Copy not allowed');
+});
+document.addEventListener('paste', e => {
+  if(isInteractiveTarget(e.target)) { /* allow paste into inputs if needed */ return; }
+  e.preventDefault(); increaseViolation('Paste not allowed');
 });
 
-// Fullscreen on first click
-document.addEventListener("click", () => {
-  if (!document.fullscreenElement) {
+/* context menu (right click) */
+document.addEventListener('contextmenu', e => {
+  if(isInteractiveTarget(e.target)) return; // do not block normal clicks on inputs/labels
+  e.preventDefault();
+  increaseViolation('Right click not allowed');
+});
+
+/* keyboard blocking for common shortcuts (Ctrl/Cmd + C/V, PrintScreen) */
+document.addEventListener('keydown', e => {
+  const key = e.key || '';
+  if( (e.ctrlKey || e.metaKey) && (key === 'c' || key === 'v' || key === 'C' || key === 'V') ){
+    e.preventDefault();
+    increaseViolation('Copy/Paste shortcut not allowed');
+    return;
+  }
+  if(key === 'PrintScreen' || key === 'Print') {
+    e.preventDefault();
+    increaseViolation('PrintScreen not allowed');
+  }
+});
+
+/* long-press detection for touch devices (exclude interactive elements) */
+let longPressTimer = null;
+document.addEventListener('touchstart', e => {
+  if(isInteractiveTarget(e.target)) return; // ignore touches that start on inputs/labels
+  longPressTimer = setTimeout(()=> {
+    increaseViolation('Long press detected');
+  }, 700);
+});
+document.addEventListener('touchend', e => { if(longPressTimer) clearTimeout(longPressTimer); longPressTimer = null; });
+document.addEventListener('touchmove', e => { if(longPressTimer) clearTimeout(longPressTimer); longPressTimer = null; });
+
+/* visibility change -> tab switch detection */
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden) increaseViolation('Tab switch detected');
+});
+
+/* first click enters fullscreen (user gesture) */
+document.addEventListener('click', () => {
+  if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
   }
 }, { once: true });
 
+/* ---------- UI wiring ---------- */
+document.getElementById('submitBtn').addEventListener('click', ()=> submitTest('manual'));
+
+/* ---------- Start ---------- */
 loadQuestions();
+
 </script>
 </body>
 </html>
