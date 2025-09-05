@@ -83,6 +83,12 @@
       .options-grid{grid-template-columns:1fr}
       header{padding:10px}
       .btn-success{width:100%}
+      .palette {
+       display: grid;
+        grid-template-columns: repeat(7, 34px); /* 10 buttons per row */
+        gap: 8px;
+        margin: 12px 0;
+       }
     }
   </style>
 </head>
@@ -109,12 +115,11 @@
       <div style="flex:1">
         <div class="small">Question Palette</div>
         <div class="palette" id="palette"></div>
-        <div style="min-width:220px;text-align:right">
-       </div>
+        <div style="min-width:220px;text-align:right"> </div>
         <div class="small">Progress</div>
-        <div id="progressText">0 / 0 answered</div>
-        <div style="height:6px;background:#eee;border-radius:6px;margin-top:8px">
-          <div id="progressBar" style="width:0%;height:6px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:6px"></div>
+            <div id="progressText">0 / 0 answered</div>
+                <div style="height:6px;background:#eee;border-radius:6px;margin-top:8px">
+                    <div id="progressBar" style="width:0%;height:6px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:6px"></div>
         </div>
       </div>
     </div>
