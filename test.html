@@ -59,30 +59,17 @@
 
   /* Extra responsiveness */
 @media (max-width:720px) {
-  /* --- existing rules remain --- */
-
   .palette {
-    display: flex;
-    flex-wrap: nowrap;         /* prevent wrapping */
-    overflow-x: auto;          /* enable horizontal scrolling */
-    gap: 8px;
-    padding-bottom: 6px;
-    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
-  }
-
-  .palette::-webkit-scrollbar {
-    height: 6px; /* small horizontal scrollbar */
-  }
-  .palette::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.25);
-    border-radius: 4px;
-  }
-  .palette::-webkit-scrollbar-track {
-    background: transparent;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 buttons per row */
+    gap: 6px;
+    overflow-x: hidden; /* no horizontal scroll */
   }
 
   .pal-btn {
-    flex: 0 0 auto;   /* don’t shrink, keep each button fixed size */
+    width: 100%;       /* make each button fill its grid cell */
+    height: 40px;      /* adjust for mobile */
+    flex: unset;       /* remove flex behavior */
   }
 }
 
@@ -94,10 +81,10 @@
   <div class="left">
     <h1>🌟 Secure Exam</h1>
     <div class="small" style="margin-left:6px;color:#fff">Full-screen required • 60 min • Max 5 violations</div>
+    <div class="user">👤 <span id="displayName">Student</span> </div>
   </div>
   <div class="right">
-    <div class="user">👤 <span id="displayName">Student</span> &nbsp; </div>
-    <div class="user">🏫 <span id="displayDept">Dept</span></div> &nbsp;
+    <div class="user">🏫 <span id="displayDept">Dept</span></div>
     <div style="margin-top:6px">
       <span class="timer">⏳ <span id="timer">60:00</span></span>
       &nbsp;&nbsp;
