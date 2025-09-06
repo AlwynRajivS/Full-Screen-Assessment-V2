@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Full Screen Assessment</title>
+  <title>Secure Login</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body {
@@ -84,16 +84,14 @@
 </head>
 <body>
   <div class="card">
-    <h2>Kamaraj College of Engineering and Technology</h2>
-    <h2>🔒 Full Screen Assessments</h2>
-    <h2>Competitive Mode of Assessment</h2>
-    <input id="username" placeholder="Mail ID (Eg. rollno.@kamarajengg.edu.in)" autocomplete="off" />
+    <h2>🔒 Secure Login</h2>
+    <input id="username" placeholder="Mail ID (Eg. 22ucs113@kamarajengg.edu.in)" autocomplete="off" />
     <input id="password" type="password" placeholder="Roll No (Eg. 22UCS113)" />
     <button onclick="login()">Login</button>
     <p id="msg"></p>
   </div>
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbxMV5JHpxlwe5DKP9q5d3uyGFhTN2we57e2ngYC023cAQzmB8fjHdIGpmMvMzTN2I-mfg/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbwOjgxdYi0G9t_N2OQo6WHAtoZvcmnDhzXTrPMJ5cKor1qCwY4jZXwrnbhhQYIhSYPlwA/exec";
 async function login() {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -127,7 +125,7 @@ async function login() {
     role: data.role
   };
   localStorage.setItem('user', JSON.stringify(userObj));
-  msgBox.style.color = "#b3ffb3";
+  msgBox.style.color = "#00ff00";
   msgBox.textContent = "✅ Login Successful! Redirecting...";
 
   setTimeout(() => {
@@ -151,4 +149,3 @@ async function login() {
 </script>
 </body>
 </html>
-
