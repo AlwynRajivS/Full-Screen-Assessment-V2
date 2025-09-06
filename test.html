@@ -19,7 +19,7 @@
     header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:linear-gradient(90deg,var(--accent1),#4e8cff);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,0.12);position:sticky;top:0;z-index:20}
     header .left {display:flex;gap:14px;align-items:center}
     header h1{font-size:18px;margin:0}
-    header .user {font-size:16px;opacity:0.95}
+    header .user {font-size:14px;opacity:0.95}
     header .right {text-align:right;font-size:14px}
     .main {max-width:1100px;margin:22px auto;padding:20px}
     .card {background:var(--card-bg);border-radius:14px;padding:18px;box-shadow:0 12px 40px rgba(20,30,60,0.08);animation:cardIn .6s ease}
@@ -57,93 +57,12 @@
     .modal .panel{background:#fff;padding:18px;border-radius:12px;width:92%;max-width:760px;max-height:80vh;overflow:auto}
     .small{font-size:13px;color:#666}
 
-@media (max-width:720px) {
-  .palette-wrapper {
-    position: relative; /* so arrows position correctly */
-  }
-
-  .palette {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    gap: 12px;
-    padding: 12px 8px;
-    background: #f9f9f9;
-    border-radius: 12px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-  }
-
-  .palette::-webkit-scrollbar {
-    display: none;
-  }
-
-  .pal-btn {
-    flex: 0 0 auto;
-    min-width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #ffffff, #e6e6e6);
-    box-shadow: 2px 2px 6px rgba(0,0,0,0.15),
-                -2px -2px 6px rgba(255,255,255,0.8);
-    border: none;
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    text-align: center;
-    line-height: 50px;
-    cursor: pointer;
-    scroll-snap-align: center;
-    transition: all 0.3s ease;
-  }
-
-  .pal-btn:hover {
-    background: linear-gradient(145deg, #e6e6e6, #ffffff);
-    transform: scale(1.05);
-  }
-
-  .pal-current {
-    background: #4CAF50 !important;
-    color: #fff !important;
-    box-shadow: 0 4px 10px rgba(0, 150, 0, 0.3);
-  }
-
-  /* arrows (hidden on mobile by default) */
-  .arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255,255,255,0.9);
-    border-radius: 50%;
-    width: 35px;
-    height: 35px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-    cursor: pointer;
-    transition: 0.3s;
-    z-index: 10;
-  }
-  .arrow:hover {
-    background: #4CAF50;
-    color: white;
-  }
-  .arrow.left { left: 5px; }
-  .arrow.right { right: 5px; }
-
-  /* hide arrows on small touch devices */
-  @media (hover: none) and (pointer: coarse) {
-    .arrow { display: none !important; }
-  }
-}
-
-
-
-
+    /* responsiveness */
+    @media (max-width:720px){
+      .options-grid{grid-template-columns:1fr}
+      header{padding:10px}
+      .btn-success{width:100%}
+    }
   </style>
 </head>
 <body>
@@ -152,13 +71,12 @@
   <div class="left">
     <h1>🌟 Secure Exam</h1>
     <div class="small" style="margin-left:6px;color:#fff">Full-screen required • 60 min • Max 5 violations</div>
-    
   </div>
   <div class="right">
-    <div class="user">👤 <span id="displayName">Student</span> </div>
-    <div class="user">🏫 <span id="displayDept">Dept</span></div>
+    <div class="user">👤 <span id="displayName">Student</span> &nbsp; | &nbsp; 🏫 <span id="displayDept">Dept</span></div>
     <div style="margin-top:6px">
       <span class="timer">⏳ <span id="timer">60:00</span></span>
+      &nbsp;&nbsp;
       <span class="viol-count">⚠ <span id="violCount">0</span> / 5</span>
     </div>
   </div>
@@ -179,15 +97,6 @@
         </div>
       </div>
     </div>
-
-    <div class="palette-wrapper">
-  <div class="arrow left" onclick="scrollPalette(-1)">&#9664;</div>
-  <div class="palette" id="palette">
-    <!-- buttons injected here -->
-  </div>
-  <div class="arrow right" onclick="scrollPalette(1)">&#9654;</div>
-</div>
-
 
     <div class="qbox">
       <div id="qContainer">
@@ -225,7 +134,7 @@
 
 <script>
 /* ---------- CONFIG ---------- */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMV5JHpxlwe5DKP9q5d3uyGFhTN2we57e2ngYC023cAQzmB8fjHdIGpmMvMzTN2I-mfg/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOjgxdYi0G9t_N2OQo6WHAtoZvcmnDhzXTrPMJ5cKor1qCwY4jZXwrnbhhQYIhSYPlwA/exec";
 /* ---------- STATE ---------- */
 const EXAM_SECONDS = 60 * 60; // 60 minutes = 3600 seconds
 let questions = [];           // array fetched from server
@@ -417,16 +326,6 @@ function showToast(msg){
   setTimeout(()=> t.style.opacity = '0', 1800);
   setTimeout(()=> document.body.removeChild(t), 2400);
 }
-
-function scrollPalette(direction) {
-  const pal = document.getElementById("palette");
-  const btnWidth = pal.querySelector(".pal-btn")?.offsetWidth || 60;
-  pal.scrollBy({ 
-    left: direction * btnWidth * 3,  // scroll 3 buttons at a time
-    behavior: "smooth" 
-  });
-}
-
 
 /* ---------- Fetch Questions ---------- */
 async function fetchQuestions(){
@@ -671,4 +570,3 @@ window.addEventListener('load', ()=> {
 </script>
 </body>
 </html>
-
