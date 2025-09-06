@@ -57,12 +57,58 @@
     .modal .panel{background:#fff;padding:18px;border-radius:12px;width:92%;max-width:760px;max-height:80vh;overflow:auto}
     .small{font-size:13px;color:#666}
 
-    /* responsiveness */
-    @media (max-width:720px){
-      .options-grid{grid-template-columns:1fr}
-      header{padding:10px}
-      .btn-success{width:100%}
-    }
+  /* Extra responsiveness */
+@media (max-width:720px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    text-align: left;
+  }
+  header h1 { font-size: 16px; }
+  header .small { font-size: 12px; }
+  header .user { font-size: 12px; }
+
+  .main {
+    padding: 12px;
+  }
+  .qtext {
+    font-size: 16px;
+  }
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls .btn {
+    flex: 1 1 45%;
+    min-width: 120px;
+  }
+  .meta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .meta > div {
+    width: 100%;
+    text-align: center;
+  }
+  .btn-success {
+    width: 100%;
+  }
+  .palette {
+    justify-content: center;
+  }
+  .modal .panel {
+    width: 96%;
+    padding: 14px;
+    font-size: 14px;
+  }
+  .review-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
   </style>
 </head>
 <body>
@@ -73,7 +119,8 @@
     <div class="small" style="margin-left:6px;color:#fff">Full-screen required • 60 min • Max 5 violations</div>
   </div>
   <div class="right">
-    <div class="user">👤 <span id="displayName">Student</span> &nbsp; | &nbsp; 🏫 <span id="displayDept">Dept</span></div>
+    <div class="user">👤 <span id="displayName">Student</span> &nbsp; </div>
+    <div class="user">🏫 <span id="displayDept">Dept</span></div> &nbsp;
     <div style="margin-top:6px">
       <span class="timer">⏳ <span id="timer">60:00</span></span>
       &nbsp;&nbsp;
@@ -570,3 +617,4 @@ window.addEventListener('load', ()=> {
 </script>
 </body>
 </html>
+
