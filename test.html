@@ -59,56 +59,33 @@
 
   /* Extra responsiveness */
 @media (max-width:720px) {
-  header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    text-align: left;
-  }
-  header h1 { font-size: 16px; }
-  header .small { font-size: 12px; }
-  header .user { font-size: 12px; }
+  /* --- existing rules remain --- */
 
-  .main {
-    padding: 12px;
-  }
-  .qtext {
-    font-size: 16px;
-  }
-  .controls {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .controls .btn {
-    flex: 1 1 45%;
-    min-width: 120px;
-  }
-  .meta {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
-  }
-  .meta > div {
-    width: 100%;
-    text-align: center;
-  }
-  .btn-success {
-    width: 100%;
-  }
   .palette {
-    justify-content: center;
+    display: flex;
+    flex-wrap: nowrap;         /* prevent wrapping */
+    overflow-x: auto;          /* enable horizontal scrolling */
+    gap: 8px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
   }
-  .modal .panel {
-    width: 96%;
-    padding: 14px;
-    font-size: 14px;
+
+  .palette::-webkit-scrollbar {
+    height: 6px; /* small horizontal scrollbar */
   }
-  .review-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+  .palette::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.25);
+    border-radius: 4px;
+  }
+  .palette::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .pal-btn {
+    flex: 0 0 auto;   /* don’t shrink, keep each button fixed size */
   }
 }
+
   </style>
 </head>
 <body>
@@ -617,4 +594,5 @@ window.addEventListener('load', ()=> {
 </script>
 </body>
 </html>
+
 
