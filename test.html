@@ -57,21 +57,37 @@
     .modal .panel{background:#fff;padding:18px;border-radius:12px;width:92%;max-width:760px;max-height:80vh;overflow:auto}
     .small{font-size:13px;color:#666}
 
-  /* Extra responsiveness */
+/* Extra responsiveness */
 @media (max-width:720px) {
   .palette {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 7 buttons per row */
-    gap: 6px;
-    overflow-x: hidden; /* no horizontal scroll */
+    display: flex;
+    flex-wrap: nowrap;            /* keep all buttons in one row */
+    overflow-x: auto;             /* allow horizontal scrolling */
+    overflow-y: hidden;           /* prevent accidental vertical scroll */
+    gap: 8px;
+    padding: 6px 4px;
+    -webkit-overflow-scrolling: touch; /* smooth swipe on iOS */
+    scrollbar-width: thin;        /* Firefox thin scrollbar */
+  }
+
+  .palette::-webkit-scrollbar {
+    height: 6px;                  /* horizontal scrollbar height */
+  }
+  .palette::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.25);
+    border-radius: 4px;
+  }
+  .palette::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   .pal-btn {
-    width: 100%;       /* make each button fill its grid cell */
-    height: 40px;      /* adjust for mobile */
-    flex: unset;       /* remove flex behavior */
+    flex: 0 0 auto;   /* don’t shrink, keep fixed size */
+    min-width: 40px;  /* ensures each button has width */
+    height: 40px;
   }
 }
+
 
   </style>
 </head>
