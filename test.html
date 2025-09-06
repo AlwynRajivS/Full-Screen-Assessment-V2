@@ -26,29 +26,8 @@
     @keyframes cardIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 
     /* palette */
-    /*.palette {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}*
-    .pal-btn{width:34px;height:34px;border-radius:50%;border:none;background:#efefef;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:600;box-shadow:0 4px 10px rgba(10,10,30,0.06)}*/
-    .palette {
-  display: grid;
-  grid-template-columns: repeat(20, 34px); /* 10 buttons per row */
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.pal-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: none;
-  background: #efefef;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  box-shadow: 0 4px 10px rgba(10, 10, 30, 0.06);
-}
-
+    .palette {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .pal-btn{width:34px;height:34px;border-radius:50%;border:none;background:#efefef;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:600;box-shadow:0 4px 10px rgba(10,10,30,0.06)}
     .pal-answered{background:var(--success);color:#fff}
     .pal-review{background:var(--warn);color:#111}
     .pal-current{box-shadow:0 6px 18px rgba(0,123,255,0.28);transform:scale(1.06)}
@@ -83,12 +62,6 @@
       .options-grid{grid-template-columns:1fr}
       header{padding:10px}
       .btn-success{width:100%}
-      .palette {
-       display: grid;
-        grid-template-columns: repeat(7, 34px); /* 10 buttons per row */
-        gap: 8px;
-        margin: 12px 0;
-       }
     }
   </style>
 </head>
@@ -115,11 +88,12 @@
       <div style="flex:1">
         <div class="small">Question Palette</div>
         <div class="palette" id="palette"></div>
-        <div style="min-width:220px;text-align:right"> </div>
+      </div>
+      <div style="min-width:220px;text-align:right">
         <div class="small">Progress</div>
-            <div id="progressText">0 / 0 answered</div>
-                <div style="height:6px;background:#eee;border-radius:6px;margin-top:8px">
-                    <div id="progressBar" style="width:0%;height:6px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:6px"></div>
+        <div id="progressText">0 / 0 answered</div>
+        <div style="height:6px;background:#eee;border-radius:6px;margin-top:8px">
+          <div id="progressBar" style="width:0%;height:6px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:6px"></div>
         </div>
       </div>
     </div>
@@ -160,9 +134,9 @@
 
 <script>
 /* ---------- CONFIG ---------- */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDFwvR7H7x2DvEtP-Dip_VIkUPCCf_Cm13pzZNagY2k9f86PXQ1w0S6p9qeup-FDaNZw/exec";
-const EXAM_SECONDS = 60 * 60;   // 60 minutes = 3600 seconds
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMV5JHpxlwe5DKP9q5d3uyGFhTN2we57e2ngYC023cAQzmB8fjHdIGpmMvMzTN2I-mfg/exec";
 /* ---------- STATE ---------- */
+const EXAM_SECONDS = 60 * 60; // 60 minutes = 3600 seconds
 let questions = [];           // array fetched from server
 let currentIndex = 0;
 let answers = {};             // index -> 'A'/'B'/'C'/'D'
@@ -179,10 +153,22 @@ function $(id){ return document.getElementById(id); }
 function safeText(s){ return (s||"")+"".replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 /* ---------- INIT (get user) ---------- */
-const userName = localStorage.getItem('user') || localStorage.getItem('userName') || prompt("Enter your name") || "Student";
-const userDept = localStorage.getItem('dept') || prompt("Enter Dept (e.g., CSE)") || "CSE";
-$('displayName').innerText = userName;
-$('displayDept').innerText = userDept;
+// ✅ First check session — redirect before any prompt
+let username, fullName, userDept;
+
+const userStr = localStorage.getItem('user');
+if (!userStr) {
+  window.location.href = "index.html";
+} else {
+  const user = JSON.parse(userStr);
+  username = user.username;
+  fullName = user.name;
+  userDept = user.dept;
+
+  $('displayName').innerText = fullName || username;
+  $('displayDept').innerText = userDept;
+}
+
 
 /* ---------- Violations & Security ---------- */
 MAX_VIOLATIONS = 5;
@@ -198,14 +184,56 @@ function addViolation(reason){
   }
 }
 
-/* block refresh and warn user */
 window.addEventListener('beforeunload', function(e){
-  // block refresh/navigation: count as violation and try to stop
-  addViolation('Page refresh/navigation detected');
+  if (submitting) return;
+  // --- compute final score ---
+  let score = 0;
+  for (let i=0;i<questions.length;i++){
+    const sel = answers[i];
+    if (!sel) continue;
+    const mapping = { A:0,B:1,C:2,D:3 };
+    const idx = mapping[sel];
+    if (idx !== undefined) {
+      const selectedText = (questions[i].options[idx]?.text || questions[i].options[idx] || "").trim();
+      const correctText = (questions[i].correctText || questions[i].answer || "").trim();
+      if (selectedText === correctText) score++;
+    }
+  }
+
+  const payload = {
+    action: 'saveResult',
+    username: username,   // pass actual username
+    name: fullName,       // full name 
+    dept: userDept,
+    answers: answers,
+    score: score,
+    total: questions.length,
+    violations: violCount,
+    startTime: startTimeISO,
+    endTime: new Date().toISOString(),
+    durationSec: EXAM_SECONDS - timerSecs,
+    endReason: 'refresh'
+  };
+
+  try {
+    // ✅ ensure result is sent even if page closes
+    navigator.sendBeacon(SCRIPT_URL, JSON.stringify(payload));
+  } catch(err) {
+    localStorage.setItem('pending_result', JSON.stringify(payload));
+  }
+
+  // ⚠ clear session AFTER sending
+  setTimeout(() => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('dept');
+    localStorage.removeItem('role');
+  }, 300);
+
+  // trigger browser "leave" message
   e.preventDefault();
-  e.returnValue = ''; // modern browsers show a prompt
-  return '';
+  e.returnValue = '';
 });
+
 
 /* disable common copy/paste/selection/long-press/contextmenu etc. */
 document.addEventListener('copy', e => { e.preventDefault(); addViolation('Copy not allowed'); });
@@ -236,9 +264,19 @@ document.addEventListener('touchstart', e => {
 document.addEventListener('touchend', e => { if(longPressTimer) clearTimeout(longPressTimer); longPressTimer = null; });
 document.addEventListener('touchmove', e => { if(longPressTimer) clearTimeout(longPressTimer); longPressTimer = null; });
 
-/* detect visibilitychange (tab switch / overlay) */
+// Already there
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) addViolation('Tab switch / minimised detected');
+});
+
+// NEW: detect switching to another app / window
+window.addEventListener('blur', () => {
+  addViolation('Window lost focus (switched apps/minimized)');
+});
+
+// Optional: regain focus logging (for debugging)
+window.addEventListener('focus', () => {
+  console.log('Window focus regained');
 });
 
 /* fullscreen exit detection */
@@ -251,6 +289,30 @@ document.addEventListener('click', function onFirstClick(){
   document.removeEventListener('click', onFirstClick);
   document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{});
 });
+
+document.addEventListener('keydown', e => {
+  // Refresh keys
+  if (e.key === 'F5' || ((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'r')) {
+    e.preventDefault();
+    addViolation('Refresh not allowed');
+    return false;
+  }
+
+  // Copy / Paste / Cut
+  if ((e.ctrlKey||e.metaKey) && ['c','v','x','a'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+    addViolation('Copy/Paste/Cut not allowed');
+    return false;
+  }
+
+  // Print Screen (⚠️ can’t block fully, but detect keydown)
+  if (e.key === 'PrintScreen') {
+    e.preventDefault();
+    addViolation('Screenshot not allowed');
+    return false;
+  }
+});
+
 
 /* ---------- UI helpers ---------- */
 function showToast(msg){
@@ -402,66 +464,72 @@ function startTimer(){
 async function submitAll(endReason){
   if (submitting) return;
   submitting = true;
-  // stop timer
   if (timerHandle) clearInterval(timerHandle);
+
   const endTimeISO = new Date().toISOString();
   const startISO = startTimeISO || new Date().toISOString();
   const durationSec = EXAM_SECONDS - timerSecs;
-  // compute score by comparing textual correct answer to selected option text
+
+  // compute score
   let score = 0;
-for (let i=0;i<questions.length;i++){
-  const sel = answers[i];
-  if (!sel) continue;
-
-  const mapping = { A:0,B:1,C:2,D:3 };
-  const idx = mapping[sel];
-
-  if (idx !== undefined) {
-    const selectedText = (questions[i].options[idx]?.text || questions[i].options[idx] || "").trim();
-    const correctText = (questions[i].correctText || questions[i].answer || "").trim();
-    if (selectedText === correctText) score++;
+  for (let i=0;i<questions.length;i++){
+    const sel = answers[i];
+    if (!sel) continue;
+    const mapping = { A:0,B:1,C:2,D:3 };
+    const idx = mapping[sel];
+    if (idx !== undefined) {
+      const selectedText = (questions[i].options[idx]?.text || questions[i].options[idx] || "").trim();
+      const correctText = (questions[i].correctText || questions[i].answer || "").trim();
+      if (selectedText === correctText) score++;
+    }
   }
-}
 
-  // payload
   const payload = {
-  action: 'saveResult',
-  name: userName,
-  dept: userDept,
-  answers: answers,
-  score: score,
-  total: questions.length,
-  violations: violCount,
-  timeLeft: timerSecs,              // ✅ add this
-  startTime: startISO,
-  endTime: endTimeISO,
-  durationSec: durationSec,
-  endReason: endReason || 'manual'
-};
+    action: 'saveResult',
+    username: username,
+    name: fullName,
+    dept: userDept,
+    answers: answers,
+    score: score,
+    total: questions.length,
+    violations: violCount,
+    timeLeft: timerSecs,
+    startTime: startISO,
+    endTime: endTimeISO,
+    durationSec: durationSec,
+    endReason: endReason || 'manual'
+  };
 
-  // attempt to POST
   try {
     const res = await fetch(SCRIPT_URL, {
-  method: 'POST',
-  body: JSON.stringify(payload)   // ❌ no headers
-});
-
+      method: 'POST',
+      //headers: { "Content-Type": "application/json" },   // ✅ FIXED
+      body: JSON.stringify(payload)
+    });
     const data = await res.json();
-    if (!data || data.error) throw new Error((data && data.message) || 'Server error');
-    // success
+    if (!data || data.error) throw new Error(data?.message || 'Server error');
+
     document.querySelector('.main').innerHTML = `
       <div class="card" style="text-align:center">
-        <h2>Thank you for submitting the test</h2>
-        <p class="small">Name: <strong>${userName}</strong> | Dept: <strong>${userDept}</strong></p>
+        <h2>✅ Thank you for submitting the test</h2>
+        <p class="small">Name: <strong>${fullName}</strong> | Dept: <strong>${userDept}</strong></p>
       </div>
     `;
-    // clear pending
     localStorage.removeItem('pending_result');
+    // inside submitAll() after success
+localStorage.removeItem('pending_result');
+localStorage.removeItem('user');
+localStorage.removeItem('dept');
+localStorage.removeItem('role');
+
+setTimeout(() => {
+  window.location.href = "index.html";
+}, 1500);
+
   } catch (err) {
     console.error('Submit failed, saving pending locally', err);
-    // Save pending to localStorage so admin can retrieve later
     localStorage.setItem('pending_result', JSON.stringify(payload));
-    alert('Submission failed — result saved locally and will be retried when network available.');
+    alert('⚠ Submission failed — result saved locally. It will retry when network is available.');
     document.querySelector('.main').innerHTML = `<div class="card"><h2>Result Saved Locally</h2><p>Please contact admin.</p></div>`;
   }
 }
