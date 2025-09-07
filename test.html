@@ -590,6 +590,16 @@ window.addEventListener('load', ()=> {
 
 /* ---------- Prevent copy of page HTML via selection+copy overlay attempts handled above ---------- */
 /* ---------- END ---------- */
+
+//whatapp message 
+document.addEventListener("keydown", (e) => {
+  const active = document.activeElement;
+  if (active.tagName !== "INPUT" && active.tagName !== "TEXTAREA") {
+    addViolation("Typing outside allowed exam fields (possible floating msg).");
+  }
+});
+
+
 </script>
 </body>
 </html>
