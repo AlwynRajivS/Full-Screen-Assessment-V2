@@ -97,7 +97,7 @@
   <div class="right">
     <div class="user">👤 <span id="displayName">Student</span> &nbsp; | &nbsp; 🏫 <span id="displayDept">Dept</span></div>
     <div style="margin-top:6px">
-      <span class="timer">⏳ <span id="timer">60:00</span></span>
+      <span class="timer">⏳ <span id="timer">30:00</span></span>
       &nbsp;&nbsp;
       <span class="viol-count">⚠ <span id="violCount">0</span> / 5</span>
     </div>
@@ -159,7 +159,7 @@
 /* ---------- CONFIG ---------- */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOjgxdYi0G9t_N2OQo6WHAtoZvcmnDhzXTrPMJ5cKor1qCwY4jZXwrnbhhQYIhSYPlwA/exec";
 /* ---------- STATE ---------- */
-const EXAM_SECONDS = 60 * 60; // 60 minutes = 3600 seconds
+const EXAM_SECONDS = 30 * 60; // 60 minutes = 3600 seconds
 let questions = [];           // array fetched from server
 let currentIndex = 0;
 let answers = {};             // index -> 'A'/'B'/'C'/'D'
@@ -603,6 +603,7 @@ document.addEventListener("keydown", (e) => {
 </script>
 </body>
 </html>
+
 
 
 
