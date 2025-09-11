@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>CMAP</title>
+  <title>Secure Online Exam</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     /* ---------- Theme & layout ---------- */
@@ -31,6 +31,10 @@
     .pal-answered{background:var(--success);color:#fff}
     .pal-review{background:var(--warn);color:#111}
     .pal-current{box-shadow:0 6px 18px rgba(0,123,255,0.28);transform:scale(1.06)}
+    .pal-answered-review {
+  background: purple;
+  color: #fff;
+}
 
     /* question area */
     .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -57,49 +61,27 @@
     .modal .panel{background:#fff;padding:18px;border-radius:12px;width:92%;max-width:760px;max-height:80vh;overflow:auto}
     .small{font-size:13px;color:#666}
 
-     /* responsiveness */
-  @media (max-width:720px){
-    .options-grid {
-  grid-template-columns: 1fr;
-   }
-
-  header {
-  padding: 10px;
-  }
-
-  .btn-success {
-   width: 100%;
-  }
-
-/* Force 7 buttons per row in palette */
-.palette {
-  display: grid;  
-  grid-template-columns: repeat(7, 1fr); /* exactly 7 per row */
-  gap: 8px;
-}
-
-.pal-btn {
-  width: 100%;  /* button auto-sizes to grid cell */
-  height: auto; 
-  aspect-ratio: 1 / 1; /* keeps perfect circle */
-  }
-    
- }
+    /* responsiveness */
+    @media (max-width:720px){
+      .options-grid{grid-template-columns:1fr}
+      header{padding:10px}
+      .btn-success{width:100%}
+    }
   </style>
 </head>
 <body>
 
 <header>
   <div class="left">
-    <h1>🌟 CMA Exam</h1>
-    <div class="small" style="margin-left:6px;color:#fff">Full-screen required • 20 min • Max 6 violations</div>
+    <h1>🌟 Secure Exam</h1>
+    <div class="small" style="margin-left:6px;color:#fff">Full-screen required • 60 min • Max 5 violations</div>
   </div>
   <div class="right">
     <div class="user">👤 <span id="displayName">Student</span> &nbsp; | &nbsp; 🏫 <span id="displayDept">Dept</span></div>
     <div style="margin-top:6px">
-      <span class="timer">⏳ <span id="timer">20:00</span></span>
+      <span class="timer">⏳ <span id="timer">60:00</span></span>
       &nbsp;&nbsp;
-      <span class="viol-count">⚠ <span id="violCount">0</span> / 6</span>
+      <span class="viol-count">⚠ <span id="violCount">0</span> / 5</span>
     </div>
   </div>
 </header>
@@ -110,13 +92,12 @@
       <div style="flex:1">
         <div class="small">Question Palette</div>
         <div class="palette" id="palette"></div>
-      
+      </div>
       <div style="min-width:220px;text-align:right">
         <div class="small">Progress</div>
         <div id="progressText">0 / 0 answered</div>
         <div style="height:6px;background:#eee;border-radius:6px;margin-top:8px">
           <div id="progressBar" style="width:0%;height:6px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:6px"></div>
-        </div>
         </div>
       </div>
     </div>
@@ -157,9 +138,9 @@
 
 <script>
 /* ---------- CONFIG ---------- */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOjgxdYi0G9t_N2OQo6WHAtoZvcmnDhzXTrPMJ5cKor1qCwY4jZXwrnbhhQYIhSYPlwA/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWwQNzgjW8UcWVJLyT2PdvDw0RVmcJp40u06dcdi9JB_7oxBEJmS4_gdT2O8aoSBK2Vg/exec";
 /* ---------- STATE ---------- */
-const EXAM_SECONDS = 20 * 60; // 60 minutes = 3600 seconds
+const EXAM_SECONDS = 60 * 60; // 60 minutes = 3600 seconds
 let questions = [];           // array fetched from server
 let currentIndex = 0;
 let answers = {};             // index -> 'A'/'B'/'C'/'D'
@@ -194,7 +175,7 @@ if (!userStr) {
 
 
 /* ---------- Violations & Security ---------- */
-MAX_VIOLATIONS = 6;
+MAX_VIOLATIONS = 5;
 function addViolation(reason){
   if (submitting) return;
   violCount++;
@@ -302,6 +283,12 @@ window.addEventListener('focus', () => {
   console.log('Window focus regained');
 });
 
+document.addEventListener("keydown", (e) => {
+  const active = document.activeElement;
+  if (active.tagName !== "INPUT" && active.tagName !== "TEXTAREA") {
+    addViolation("Typing outside allowed exam fields (possible floating msg).");
+  }
+});
 /* fullscreen exit detection */
 document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement) addViolation('Exit fullscreen');
@@ -372,18 +359,42 @@ async function fetchQuestions(){
 
 /* ---------- Render Palette ---------- */
 function renderPalette(){
-  const pal = $('palette'); pal.innerHTML = '';
-  for (let i=0;i<questions.length;i++){
-    const btn = document.createElement('button'); btn.className='pal-btn';
+  const pal = $('palette'); 
+  pal.innerHTML = '';
+
+  for (let i=0; i<questions.length; i++){
+    const btn = document.createElement('button'); 
+    btn.className = 'pal-btn';
     btn.textContent = i+1;
-    if (answers.hasOwnProperty(i)) btn.classList.add('pal-answered');
-    if (reviewMarks[i]) btn.classList.add('pal-review');
+
+    if (answers.hasOwnProperty(i) && reviewMarks[i]) {
+      // Answered + Marked for Review → Purple
+      btn.classList.add('pal-answered-review');
+    } 
+    else if (answers.hasOwnProperty(i)) {
+      // Answered only → Green
+      btn.classList.add('pal-answered');
+    } 
+    else if (reviewMarks[i]) {
+      // Marked for Review only → Yellow
+      btn.classList.add('pal-review');
+    } 
+    // else → default grey (unanswered)
+
     if (i === currentIndex) btn.classList.add('pal-current');
-    btn.onclick = () => { currentIndex = i; renderQuestion(); };
+
+    btn.onclick = () => { 
+      currentIndex = i; 
+      renderQuestion(); 
+    };
+
     pal.appendChild(btn);
   }
+
   updateProgress();
 }
+    
+
 
 /* ---------- Render Question ---------- */
 function renderQuestion(){
@@ -413,11 +424,18 @@ function renderQuestion(){
   // attach click handlers
   [...container.querySelectorAll('.option')].forEach(el=>{
     el.onclick = () => {
-      const opt = el.getAttribute('data-opt');
-      answers[currentIndex] = opt;
-      renderQuestion();
-      renderPalette();
-    };
+  const opt = el.getAttribute('data-opt');
+  answers[currentIndex] = opt;
+
+  // ✅ Clear review mark if question is answered
+  if (reviewMarks[currentIndex]) {
+    delete reviewMarks[currentIndex];
+  }
+
+  renderQuestion();
+  renderPalette();
+};
+
   });
 
   // show/hide submit button
@@ -439,8 +457,17 @@ $('prevBtn').addEventListener('click', ()=> {
   if (currentIndex > 0) { currentIndex--; renderQuestion(); }
 });
 $('saveNextBtn').addEventListener('click', ()=> {
-  if (currentIndex < questions.length-1) { currentIndex++; renderQuestion(); }
+  // ✅ If answered, remove review mark
+  if (answers[currentIndex]) {
+    delete reviewMarks[currentIndex];
+  }
+
+  if (currentIndex < questions.length-1) { 
+    currentIndex++; 
+    renderQuestion(); 
+  }
 });
+
 $('reviewNextBtn').addEventListener('click', ()=> {
   reviewMarks[currentIndex] = true;
   if (currentIndex < questions.length-1) { currentIndex++; renderQuestion(); }
@@ -590,22 +617,6 @@ window.addEventListener('load', ()=> {
 
 /* ---------- Prevent copy of page HTML via selection+copy overlay attempts handled above ---------- */
 /* ---------- END ---------- */
-
-//whatapp message 
-document.addEventListener("keydown", (e) => {
-  const active = document.activeElement;
-  if (active.tagName !== "INPUT" && active.tagName !== "TEXTAREA") {
-    addViolation("Typing outside allowed exam fields (possible floating msg).");
-  }
-});
-
-
 </script>
 </body>
 </html>
-
-
-
-
-
-
